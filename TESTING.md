@@ -30,7 +30,9 @@ They restore the original endpoint in a finally block.
   endpoint after switching.
 - The resilient published build launches with `SoundSwitcher.AudioWorker.exe`
   beside the tray executable; an invalid worker request exits with code 1 while
-  the tray process remains alive.
+  the tray process remains alive. The worker's `list` operation successfully
+  enumerated nine active render endpoints after the full audio boundary was
+  isolated.
 
 ## Manual Windows verification
 

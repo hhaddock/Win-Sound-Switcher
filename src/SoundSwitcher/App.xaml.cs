@@ -39,7 +39,7 @@ public partial class App : System.Windows.Application
                 AppContext.BaseDirectory,
                 "SoundSwitcher.AudioWorker.exe");
             IAudioDeviceService safeAudioDeviceService = File.Exists(audioWorkerPath)
-                ? new IsolatedAudioDeviceService(audioDeviceService, audioWorkerPath)
+                ? new IsolatedAudioDeviceService(audioWorkerPath)
                 : audioDeviceService;
             var settingsStore = new SettingsStore();
             var settings = await settingsStore.LoadAsync();

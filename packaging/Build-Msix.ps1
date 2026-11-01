@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')]
-    [string] $Version = '1.0.0.0',
+    # MSIX requires four numeric components. The first three map to SemVer
+    # MAJOR.MINOR.PATCH; the fourth component is reserved for packaging.
+    [string] $Version = '1.0.1.0',
 
     [ValidatePattern('^[^<>]+$')]
     [string] $Publisher = 'CN=SoundSwitcher Development',
@@ -25,6 +27,10 @@ $iconSource = Join-Path $repoRoot 'src\SoundSwitcher\Assets\sound-switcher.png'
 
 if (-not $OutputDirectory) {
     $OutputDirectory = Join-Path $repoRoot 'artifacts\msix'
+}
+
+if ($CertificatePath) {
+    $CertificatePath = [System.IO.Path]::GetFullPath($CertificatePath)
 }
 
 if (-not (Test-Path $mainProject)) { throw "Main project was not found: $mainProject" }
@@ -120,8 +126,18 @@ if ($Sign) {
         throw "Certificate was not found: $CertificatePath"
     }
 
+    $securePassword = ConvertTo-SecureString $CertificatePassword -AsPlainText -Force
+    $signingCertificate = Import-PfxCertificate `
+        -FilePath $CertificatePath `
+        -CertStoreLocation 'Cert:\CurrentUser\My' `
+        -Password $securePassword
+
+    if (-not $signingCertificate) {
+        throw 'The development certificate could not be imported into the current-user certificate store.'
+    }
+
     Write-Host 'Signing the MSIX package...'
-    & $signTool.FullName sign /fd SHA256 /f $CertificatePath /p $CertificatePassword $packagePath
+    & $signTool.FullName sign /fd SHA256 /sha1 $signingCertificate.Thumbprint $packagePath
     if ($LASTEXITCODE -ne 0) { throw 'signtool failed to sign the MSIX package.' }
 }
 

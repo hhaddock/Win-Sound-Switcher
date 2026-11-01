@@ -83,4 +83,7 @@ tray icon for direct selection and configuration.
 - Windows-only; the audio policy interface is an undocumented Windows boundary.
 - Physical disconnect/reconnect and sign-in startup verification still require
   manual testing on the target machine.
-- No installer or code-signing certificate is included yet.
+- The MSIX package currently uses a development certificate for local
+  sideloading; a public release still needs a trusted publisher certificate.
+- Releases follow SemVer (`MAJOR.MINOR.PATCH`), mapped to the required MSIX
+  version format as `MAJOR.MINOR.PATCH.0`.

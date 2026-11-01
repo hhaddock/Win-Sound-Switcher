@@ -42,7 +42,8 @@ dotnet publish .\src\SoundSwitcher.AudioWorker\SoundSwitcher.AudioWorker.csproj 
 
 `SoundSwitcher.AudioWorker.exe` must remain in the same directory as
 `SoundSwitcher.exe`. The tray process uses the worker for the Windows audio
-policy mutation so a native audio failure cannot terminate the tray UI.
+enumeration and policy operations so a native audio failure cannot terminate
+the tray UI.
 
 Copy the resulting SoundSwitcher.exe to a stable user-owned folder and launch
 it directly. The application stores settings under the current user's

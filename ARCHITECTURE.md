@@ -145,11 +145,10 @@ Tray UI / application layer
  Windows policy COM + NAudio
 ```
 
-Enumeration and default-device reads remain in the tray process. The mutation
-operation runs in a short-lived worker process. A worker exception, non-zero
-exit, timeout, or native crash is converted into a switching error while the
-tray process remains available. The worker must be packaged beside
-`SoundSwitcher.exe`.
+Enumeration, default-device reads, endpoint reads, and mutation all run in a
+short-lived worker process. A worker exception, non-zero exit, timeout, or
+native crash is converted into an audio error while the tray process remains
+available. The worker must be packaged beside `SoundSwitcher.exe`.
 
 ### Persistence infrastructure
 
