@@ -8,11 +8,16 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\sound-switcher.ico</ApplicationIcon>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <Resource Include="Assets\sound-switcher.ico" />
-    <PackageReference Include="NAudio.Wasapi" Version="3.3.0" />
+    <Content Include="..\..\third-party\sound-volume-command-line\svcl.exe" Link="svcl.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+    <Content Include="..\..\third-party\sound-volume-command-line\svcl.chm" Link="svcl.chm" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+    <Content Include="..\..\third-party\sound-volume-command-line\readme.txt" Link="svcl-readme.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
 </Project>

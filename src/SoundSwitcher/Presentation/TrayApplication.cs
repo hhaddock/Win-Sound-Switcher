@@ -21,8 +21,11 @@ public sealed class TrayApplication : IDisposable
     private readonly IStartupRegistrationService _startupRegistrationService;
     private readonly NotifyIcon _notifyIcon;
     private readonly Icon _trayIcon;
+    private readonly SemaphoreSlim _audioCommandGate = new(1, 1);
+    private static readonly TimeSpan ErrorNotificationCooldown = TimeSpan.FromSeconds(5);
     private SoundSwitcherSettings _settings;
     private bool _isDisposed;
+    private DateTimeOffset _lastErrorNotificationAt;
 
     public TrayApplication(
         IAudioDeviceService audioDeviceService,
@@ -54,7 +57,6 @@ public sealed class TrayApplication : IDisposable
     {
         ThrowIfDisposed();
         RebuildContextMenu();
-        _ = RefreshActiveDeviceAsync();
     }
 
     public void UpdateSettings(SoundSwitcherSettings settings)
@@ -65,7 +67,6 @@ public sealed class TrayApplication : IDisposable
         _settings = settings;
         _startupRegistrationService.SetEnabled(settings.LaunchAtStartup);
         RebuildContextMenu();
-        _ = RefreshActiveDeviceAsync();
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -88,6 +89,11 @@ public sealed class TrayApplication : IDisposable
     {
         ThrowIfDisposed();
 
+        if (!await _audioCommandGate.WaitAsync(0))
+        {
+            return;
+        }
+
         try
         {
             var currentDevice = await _audioDeviceService.GetDefaultOutputDeviceAsync();
@@ -100,29 +106,29 @@ public sealed class TrayApplication : IDisposable
 
             if (nextDevice is null)
             {
-                _notifyIcon.ShowBalloonTip(
-                    2500,
-                    "Sound Switcher",
-                    "No other configured audio device is currently available.",
-                    ToolTipIcon.Warning);
                 return;
             }
 
-            await SwitchToAsync(nextDevice.EndpointId);
+            await SwitchToAsyncCoreAsync(nextDevice.EndpointId);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            _notifyIcon.ShowBalloonTip(
-                3000,
-                "Sound Switcher",
-                $"Audio output could not be changed: {exception.Message}",
-                ToolTipIcon.Error);
+            ShowAudioError($"Audio output could not be changed: {exception.Message}");
+        }
+        finally
+        {
+            _audioCommandGate.Release();
         }
     }
 
     public async Task ShowSwitcherAsync()
     {
         ThrowIfDisposed();
+
+        if (!await _audioCommandGate.WaitAsync(0))
+        {
+            return;
+        }
 
         try
         {
@@ -136,16 +142,16 @@ public sealed class TrayApplication : IDisposable
             if (switcherWindow.ShowDialog() == true
                 && switcherWindow.SelectedEndpointId is not null)
             {
-                await SwitchToAsync(switcherWindow.SelectedEndpointId);
+                await SwitchToAsyncCoreAsync(switcherWindow.SelectedEndpointId);
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            _notifyIcon.ShowBalloonTip(
-                3000,
-                "Sound Switcher",
-                $"The switcher could not open: {exception.Message}",
-                ToolTipIcon.Error);
+            ShowAudioError($"The switcher could not open: {exception.Message}");
+        }
+        finally
+        {
+            _audioCommandGate.Release();
         }
     }
 
@@ -159,6 +165,7 @@ public sealed class TrayApplication : IDisposable
         _isDisposed = true;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        _audioCommandGate.Dispose();
         if (!ReferenceEquals(_trayIcon, SystemIcons.Application))
         {
             _trayIcon.Dispose();
@@ -204,36 +211,34 @@ public sealed class TrayApplication : IDisposable
 
     private async Task SwitchToAsync(string endpointId)
     {
+        if (!await _audioCommandGate.WaitAsync(0))
+        {
+            return;
+        }
+
         try
         {
-            var activeDevice = await _deviceSwitchService.SelectDeviceAsync(
-                _settings.ConfiguredDevices,
-                endpointId);
-
-            if (activeDevice is null)
-            {
-                _notifyIcon.ShowBalloonTip(
-                    2500,
-                    "Sound Switcher",
-                    "That device is unavailable or not enabled. Use Configure devices to replace it.",
-                    ToolTipIcon.Warning);
-                return;
-            }
-
-            SetTooltip(activeDevice.DisplayName);
-            _notifyIcon.ShowBalloonTip(
-                1800,
-                "Sound Switcher",
-                $"Switched to {activeDevice.DisplayName}.",
-                ToolTipIcon.Info);
+            await SwitchToAsyncCoreAsync(endpointId);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            _notifyIcon.ShowBalloonTip(
-                3000,
-                "Sound Switcher",
-                $"Audio output could not be changed: {exception.Message}",
-                ToolTipIcon.Error);
+            ShowAudioError($"Audio output could not be changed: {exception.Message}");
+        }
+        finally
+        {
+            _audioCommandGate.Release();
+        }
+    }
+
+    private async Task SwitchToAsyncCoreAsync(string endpointId)
+    {
+        var activeDevice = await _deviceSwitchService.SelectDeviceAsync(
+            _settings.ConfiguredDevices,
+            endpointId);
+
+        if (activeDevice is not null)
+        {
+            SetTooltip(activeDevice.DisplayName);
         }
     }
 
@@ -253,19 +258,6 @@ public sealed class TrayApplication : IDisposable
         }
     }
 
-    private async Task RefreshActiveDeviceAsync()
-    {
-        try
-        {
-            var activeDevice = await _audioDeviceService.GetDefaultOutputDeviceAsync();
-            SetTooltip(activeDevice?.DisplayName);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            SetTooltip(null);
-        }
-    }
-
     private void SetTooltip(string? activeDeviceName)
     {
         var text = string.IsNullOrWhiteSpace(activeDeviceName)
@@ -273,6 +265,22 @@ public sealed class TrayApplication : IDisposable
             : $"Sound Switcher - {activeDeviceName}";
 
         _notifyIcon.Text = text.Length <= 63 ? text : text[..63];
+    }
+
+    private void ShowAudioError(string message)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastErrorNotificationAt < ErrorNotificationCooldown)
+        {
+            return;
+        }
+
+        _lastErrorNotificationAt = now;
+        _notifyIcon.ShowBalloonTip(
+            3000,
+            "Sound Switcher",
+            message,
+            ToolTipIcon.Error);
     }
 
     private static Icon LoadApplicationIcon()

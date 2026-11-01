@@ -34,20 +34,24 @@ public partial class App : System.Windows.Application
 
         try
         {
-            var audioDeviceService = new NAudioDeviceService();
-            var audioWorkerPath = Path.Combine(
+            var soundVolumePath = Path.Combine(
                 AppContext.BaseDirectory,
-                "SoundSwitcher.AudioWorker.exe");
-            IAudioDeviceService safeAudioDeviceService = File.Exists(audioWorkerPath)
-                ? new IsolatedAudioDeviceService(audioWorkerPath)
-                : audioDeviceService;
+                "svcl.exe");
+            if (!File.Exists(soundVolumePath))
+            {
+                throw new InvalidOperationException(
+                    "svcl.exe is missing. Reinstall Sound Switcher with the complete application folder.");
+            }
+
+            IAudioDeviceService audioDeviceService =
+                new SoundVolumeAudioDeviceService(soundVolumePath);
             var settingsStore = new SettingsStore();
             var settings = await settingsStore.LoadAsync();
-            var switchService = new DeviceSwitchService(safeAudioDeviceService);
+            var switchService = new DeviceSwitchService(audioDeviceService);
             var startupRegistrationService = new WindowsStartupRegistrationService();
 
             _trayApplication = new TrayApplication(
-                safeAudioDeviceService,
+                audioDeviceService,
                 settingsStore,
                 switchService,
                 startupRegistrationService,

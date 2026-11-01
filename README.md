@@ -1,19 +1,18 @@
 # Sound Switcher
 
-Sound Switcher is a Windows 11 tray utility for quickly changing the default
-audio output among any number of configured devices. It supports ordered device
-cycling, direct selection, a global hotkey, a visual overlay, and optional
-launch-at-sign-in.
+Small Windows 11 tray utility for changing the default output among any number
+of configured audio devices. It supports a global hotkey, direct tray selection,
+friendly labels, ordering, and optional launch-at-sign-in.
 
-## Current status
+## Design
 
-This is an early, Windows-specific project. The current implementation uses
-WPF, Windows Forms tray integration, .NET 10, and `NAudio.Wasapi`.
+The app is one WPF/Windows Forms tray process. For Windows audio operations it
+invokes the bundled `svcl.exe` from NirSoft's SoundVolumeCommandLine utility.
+There is no custom Core Audio COM code, NAudio dependency, or audio worker
+process in the supported build. The external utility is copied unmodified and
+its license/readme are shipped beside it.
 
-The release build contains two executables. `SoundSwitcher.exe` owns the tray
-and UI. `SoundSwitcher.AudioWorker.exe` performs the risky Windows audio-policy
-mutation in a separate process, so a native audio failure does not take down the
-tray application. Keep both files in the same directory.
+See the [official SoundVolumeCommandLine documentation](https://www.nirsoft.net/utils/sound_volume_command_line.html).
 
 ## Requirements
 
@@ -23,67 +22,42 @@ tray application. Keep both files in the same directory.
 
 ## Build and test
 
-From the repository root:
-
 ```powershell
-dotnet restore .\SoundSwitcher.sln
+$env:NUGET_PACKAGES = Join-Path (Get-Location) '.nuget-packages'
+dotnet restore .\SoundSwitcher.sln -r win-x64
 dotnet build .\SoundSwitcher.sln --no-restore
 dotnet test .\tests\SoundSwitcher.Tests\SoundSwitcher.Tests.csproj --no-restore
 ```
 
-The integration tests use the current Windows audio endpoints. The switching
-test restores the original default output in a `finally` block.
-
-## Publish a portable build
-
-Publish both projects to the same directory:
+## Publish a portable app
 
 ```powershell
-$output = Join-Path (Get-Location) 'artifacts\publish\win-x64'
-
 dotnet publish .\src\SoundSwitcher\SoundSwitcher.csproj `
   -c Release `
   -r win-x64 `
   --self-contained true `
   -p:PublishSingleFile=true `
   -p:IncludeNativeLibrariesForSelfExtract=true `
-  -o $output
-
-dotnet publish .\src\SoundSwitcher.AudioWorker\SoundSwitcher.AudioWorker.csproj `
-  -c Release `
-  -r win-x64 `
-  --self-contained true `
-  -p:PublishSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true `
-  -o $output
+  -o .\artifacts\publish\simple-win-x64
 ```
 
-Run the tray application with:
+Keep these files together and run `SoundSwitcher.exe`:
 
-```powershell
-Start-Process .\artifacts\publish\win-x64\SoundSwitcher.exe
-```
+- `SoundSwitcher.exe`
+- `svcl.exe`
+- `svcl.chm`
+- `svcl-readme.txt`
 
-The first launch opens configuration. Later launches run in the notification
-area. Use `Ctrl+Alt+S` to advance to the next enabled output, or right-click the
-tray icon for direct selection and configuration.
+The first launch opens configuration. Later launches stay in the notification
+area. The default hotkey is `Ctrl+Alt+S`.
 
 ## Repository map
 
-- `src/SoundSwitcher` — tray application, UI, domain, persistence, and audio adapter
-- `src/SoundSwitcher.AudioWorker` — isolated audio-policy worker
-- `tests/SoundSwitcher.Tests` — unit and Windows-hosted integration tests
-- `ARCHITECTURE.md` — design and fault-boundary decisions
-- `KANBAN.md` — implementation cards and acceptance criteria
-- `PACKAGING.md` — release packaging details
-- `TESTING.md` — automated and manual verification notes
+- `src/SoundSwitcher` — tray application, UI, persistence, and audio adapter
+- `tests/SoundSwitcher.Tests` — automated tests
+- `third-party/sound-volume-command-line` — unmodified NirSoft utility files
+- `ARCHITECTURE.md` — design decisions
+- `PACKAGING.md` — publish instructions
+- `TESTING.md` — verification notes
 
-## Known limitations
-
-- Windows-only; the audio policy interface is an undocumented Windows boundary.
-- Physical disconnect/reconnect and sign-in startup verification still require
-  manual testing on the target machine.
-- The MSIX package currently uses a development certificate for local
-  sideloading; a public release still needs a trusted publisher certificate.
-- Releases follow SemVer (`MAJOR.MINOR.PATCH`), mapped to the required MSIX
-  version format as `MAJOR.MINOR.PATCH.0`.
+Releases use SemVer. The current simplified release is `1.1.0`.

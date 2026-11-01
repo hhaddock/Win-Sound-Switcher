@@ -18,8 +18,8 @@ public sealed class DeviceSwitchService
 
     /// <summary>
     /// Selects a configured, enabled, and available endpoint.
-    /// Returns the Windows default after the switch, or null when the endpoint
-    /// cannot be selected.
+    /// Returns the requested device after the audio command succeeds, or
+    /// null when the endpoint is not configured or enabled.
     /// </summary>
     public async Task<AudioDevice?> SelectDeviceAsync(
         IReadOnlyCollection<ConfiguredAudioDevice> configuredDevices,
@@ -48,31 +48,14 @@ public sealed class DeviceSwitchService
                 return null;
             }
 
-            var targetDevice = await _audioDeviceService.GetOutputDeviceAsync(
+            await _audioDeviceService.SetDefaultOutputDeviceAsync(
                 configuredDevice.EndpointId,
                 cancellationToken);
 
-            if (targetDevice is null || !targetDevice.IsAvailable)
-            {
-                return null;
-            }
-
-            var currentDevice = await _audioDeviceService.GetDefaultOutputDeviceAsync(cancellationToken);
-
-            if (currentDevice is not null
-                && string.Equals(
-                    currentDevice.EndpointId,
-                    targetDevice.EndpointId,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return currentDevice;
-            }
-
-            await _audioDeviceService.SetDefaultOutputDeviceAsync(
-                targetDevice.EndpointId,
-                cancellationToken);
-
-            return await _audioDeviceService.GetDefaultOutputDeviceAsync(cancellationToken);
+            return new AudioDevice(
+                configuredDevice.EndpointId,
+                configuredDevice.Label,
+                isAvailable: true);
         }
         finally
         {

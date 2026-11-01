@@ -1,54 +1,27 @@
-# Sound Switcher packaging
+# Packaging
 
-## Publish a portable self-contained build
+The supported distribution is a self-contained portable folder. MSIX is not
+used by the simplified build because the app needs to ship and invoke the
+unmodified `svcl.exe` utility beside the tray executable.
 
-From the repository root, run:
+From the repository root:
 
-~~~powershell
-$TaskDotnetHome = Join-Path (Get-Location) '.dotnet-cli'
-$TaskNugetPackages = Join-Path (Get-Location) '.nuget-packages'
-$env:DOTNET_CLI_HOME = $TaskDotnetHome
-$env:NUGET_PACKAGES = $TaskNugetPackages
-$env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+```powershell
+$env:NUGET_PACKAGES = Join-Path (Get-Location) '.nuget-packages'
 dotnet publish .\src\SoundSwitcher\SoundSwitcher.csproj `
-  --configuration Release `
-  --runtime win-x64 `
+  -c Release `
+  -r win-x64 `
   --self-contained true `
   -p:PublishSingleFile=true `
   -p:IncludeNativeLibrariesForSelfExtract=true `
-  -p:DebugType=None `
-  --output .\artifacts\publish\win-x64
-~~~
+  -o .\artifacts\publish\simple-win-x64
+```
 
-The resilient build also requires the audio worker beside the main executable:
+Distribute the complete output directory, not only the main executable. The
+bundled NirSoft files include the utility's license/readme and must remain
+beside `SoundSwitcher.exe`.
 
-~~~powershell
-dotnet publish .\src\SoundSwitcher\SoundSwitcher.csproj `
-  --configuration Release `
-  --runtime win-x64 `
-  --self-contained true `
-  -p:PublishSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true `
-  --output .\artifacts\publish\win-x64
+The app does not require administrator privileges. Copy the output folder to a
+stable user-owned location and run `SoundSwitcher.exe`.
 
-dotnet publish .\src\SoundSwitcher.AudioWorker\SoundSwitcher.AudioWorker.csproj `
-  --configuration Release `
-  --runtime win-x64 `
-  --self-contained true `
-  -p:PublishSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true `
-  --output .\artifacts\publish\win-x64
-~~~
-
-`SoundSwitcher.AudioWorker.exe` must remain in the same directory as
-`SoundSwitcher.exe`. The tray process uses the worker for the Windows audio
-enumeration and policy operations so a native audio failure cannot terminate
-the tray UI.
-
-Copy the resulting SoundSwitcher.exe to a stable user-owned folder and launch
-it directly. The application stores settings under the current user's
-ApplicationData folder and does not require administrator privileges.
-
-The published executable is a Windows GUI application and does not open a
-console window. Remove the per-user startup setting from the configuration
-window before deleting the executable if launch-at-sign-in was enabled.
+Version changes follow SemVer. The current release is `1.1.0`.

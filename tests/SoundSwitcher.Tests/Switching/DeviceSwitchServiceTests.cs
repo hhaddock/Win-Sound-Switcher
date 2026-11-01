@@ -7,7 +7,7 @@ namespace SoundSwitcher.Tests.Switching;
 public sealed class DeviceSwitchServiceTests
 {
     [Fact]
-    public async Task SelectsConfiguredAvailableDeviceAndReportsTheNewDefault()
+    public async Task SelectsConfiguredDeviceWithOneWorkerOperation()
     {
         var audio = new FakeAudioDeviceService(
             new AudioDevice("speakers", "Speakers", isAvailable: true),
@@ -26,7 +26,7 @@ public sealed class DeviceSwitchServiceTests
     }
 
     [Fact]
-    public async Task DoesNotSelectAnUnconfiguredDisabledOrUnavailableDevice()
+    public async Task DoesNotSelectAnUnconfiguredOrDisabledDevice()
     {
         var audio = new FakeAudioDeviceService(
             new AudioDevice("speakers", "Speakers", isAvailable: true),
@@ -39,14 +39,13 @@ public sealed class DeviceSwitchServiceTests
             new ConfiguredAudioDevice("monitor", "Monitor", isEnabled: false)
         };
 
-        Assert.Null(await service.SelectDeviceAsync(configured, "headphones"));
         Assert.Null(await service.SelectDeviceAsync(configured, "monitor"));
         Assert.Null(await service.SelectDeviceAsync(configured, "unknown"));
         Assert.Empty(audio.SetDefaultCalls);
     }
 
     [Fact]
-    public async Task ReselectingTheCurrentDeviceIsHarmless()
+    public async Task ReselectingTheCurrentDeviceUsesTheSingleWorkerOperation()
     {
         var audio = new FakeAudioDeviceService(
             new AudioDevice("speakers", "Speakers", isAvailable: true))
@@ -60,7 +59,7 @@ public sealed class DeviceSwitchServiceTests
             "SPEAKERS");
 
         Assert.Equal("speakers", selected?.EndpointId);
-        Assert.Empty(audio.SetDefaultCalls);
+        Assert.Equal(new[] { "speakers" }, audio.SetDefaultCalls);
     }
 
     private static ConfiguredAudioDevice[] ConfiguredDevices(params string[] endpointIds) =>

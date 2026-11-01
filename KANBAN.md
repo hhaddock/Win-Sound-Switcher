@@ -29,7 +29,7 @@
 - OVR-03 — Add switch feedback and error presentation
 - REL-01 — Add unit and integration tests
 - REL-02 — Package the application
-- REL-04 — Isolate native audio switching from the tray process
+- REL-04 — Keep the audio path minimal and deterministic
 
 ### Ready / next candidates
 
@@ -447,22 +447,24 @@ Verify the complete user workflow with multiple real audio devices.
 - Startup behavior works.
 - No known release-blocking errors remain.
 
-#### REL-04 — Isolate native audio switching from the tray process
+#### REL-04 — Keep the audio path minimal and deterministic
 
 **Track:** Shared  
 **Dependencies:** AUD-03, REL-02
 
-Run the Windows policy COM mutation in a short-lived companion process so a
-native audio failure cannot terminate the tray UI.
+Use the bundled SoundVolumeCommandLine utility for Windows audio operations.
+Keep the tray app as a single process and serialize external commands.
 
 **Acceptance criteria:**
 
-- The tray process delegates default-device mutation to the audio worker.
-- Worker exceptions, non-zero exits, timeouts, and crashes become user-facing
-  switching errors.
-- The tray process remains alive after a worker failure.
-- Packaging places the worker beside the tray executable.
-- A regression test covers a failed worker invocation.
+- The tray process invokes `svcl.exe` for enumeration and default-device
+  mutation.
+- NAudio, custom Windows audio-policy COM, and the audio worker are absent.
+- External commands are serialized and have a bounded timeout.
+- Non-zero exits, timeouts, and missing devices become user-facing switching
+  errors.
+- Successful switches do not emit a toast; repeated errors are throttled.
+- Packaging places the unmodified `svcl.exe` beside the tray executable.
 
 ## Dependency summary
 

@@ -19,14 +19,6 @@ public partial class SetupWindow : Window
     private SoundSwitcherSettings _settings;
     private HotkeySettings _hotkey;
 
-    public SetupWindow()
-        : this(
-            new NAudioDeviceService(),
-            new SettingsStore(),
-            new SoundSwitcherSettings([]))
-    {
-    }
-
     public SetupWindow(
         IAudioDeviceService audioDeviceService,
         ISettingsStore settingsStore,
