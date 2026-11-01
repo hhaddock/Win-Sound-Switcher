@@ -1,0 +1,32 @@
+# Visual Studio / Rider
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.rsuser
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+TestResults/
+*.nupkg
+*.snupkg
+
+# Local SDK and package caches used by this workspace
+.dotnet-cli/
+.nuget-packages/
+
+# Runtime and diagnostic output
+*.log
+*.tmp
+*.dmp
+*.pdb
+.ui-test-appdata/
+tests/**/temporary-default-device.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+

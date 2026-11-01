@@ -1,0 +1,83 @@
+<Window x:Class="SoundSwitcher.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configure Sound Switcher"
+        Icon="/SoundSwitcher;component/Assets/sound-switcher.ico"
+        Width="760"
+        Height="520"
+        MinWidth="620"
+        MinHeight="420"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,12">
+            <TextBlock FontSize="20"
+                       FontWeight="SemiBold"
+                       Text="Configure audio outputs" />
+            <TextBlock Margin="0,4,0,0"
+                       Foreground="Gray"
+                       Text="Choose the devices to include, set their order, and give them friendly names." />
+            <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center"
+                           FontWeight="SemiBold"
+                           Text="Global hotkey:" />
+                <TextBox x:Name="HotkeyBox"
+                         Width="160"
+                         Margin="8,0,0,0"
+                         IsReadOnly="True"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown" />
+            </StackPanel>
+            <CheckBox x:Name="LaunchAtStartupCheckBox"
+                      Margin="0,8,0,0"
+                      Content="Launch Sound Switcher when I sign in" />
+        </StackPanel>
+
+        <ListView x:Name="DeviceList"
+                  Grid.Row="1"
+                  ItemsSource="{Binding Items}"
+                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+            <ListView.View>
+                <GridView AllowsColumnReorder="False">
+                    <GridViewColumn Header="Use" Width="48">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox HorizontalAlignment="Center"
+                                          IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Label" Width="190">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox MinWidth="170"
+                                         Text="{Binding Label, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Windows device" Width="270"
+                                    DisplayMemberBinding="{Binding DisplayName}" />
+                    <GridViewColumn Header="Status" Width="100"
+                                    DisplayMemberBinding="{Binding AvailabilityText}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <DockPanel Grid.Row="2" Margin="0,12,0,0">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                <Button Width="70" Margin="0,0,6,0" Click="MoveUp_Click" Content="Up" />
+                <Button Width="70" Margin="0,0,6,0" Click="MoveDown_Click" Content="Down" />
+                <Button Width="70" Margin="0,0,6,0" Click="Remove_Click" Content="Remove" />
+                <Button Width="70" Click="Refresh_Click" Content="Refresh" />
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Width="80" Margin="0,0,6,0" Click="Cancel_Click" Content="Cancel" />
+                <Button Width="80" Click="Save_Click" Content="Save" IsDefault="True" />
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>
