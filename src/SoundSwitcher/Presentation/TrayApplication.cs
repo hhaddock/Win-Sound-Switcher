@@ -45,6 +45,7 @@ public sealed class TrayApplication : IDisposable
         _notifyIcon = new NotifyIcon
         {
             Icon = _trayIcon,
+            Text = "Sound Switcher",
             Visible = true
         };
     }
@@ -56,6 +57,11 @@ public sealed class TrayApplication : IDisposable
     public void Start()
     {
         ThrowIfDisposed();
+
+        // Reconcile the Run entry on every launch. This is required for
+        // existing installations whose preference is already enabled, and it
+        // also repairs the entry after the app is moved or updated.
+        _startupRegistrationService.SetEnabled(_settings.LaunchAtStartup);
         RebuildContextMenu();
     }
 
